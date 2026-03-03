@@ -1,0 +1,10 @@
+{
+  "name": "nodeFirstProjectAuth",
+  "version": "0.0.1",
+  "description": "Role based authentication.",
+  "main": "yes",
+  "repository": "https://github.com/balajin96/authentication-backend.git",
+  "author": "balaji",
+  "license": "yes",
+  "private": false
+}
