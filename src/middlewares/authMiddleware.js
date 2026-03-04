@@ -1,35 +1,43 @@
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
+import env from "../config/env.js";
+import AppError from "../utils/AppError.js";
 
-export const verifyToken = (req, res, next) => {
-    let token;
-    // req.headers['Authorization'];
-    let authHeader = req.headers.authorization || req.headers.Authorization;
-console.log("🥝🥝🥝🥝", req.headers);
+export const verifyToken = (req, _res, next) => {
+  const authHeader = req.headers.authorization;
 
-    if (authHeader && authHeader.startsWith("Bearer")) {
-        // token = authHeader.substring(7); // Remove "Bearer " from the beginning
-        token = authHeader.split(" ")[1]; 
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    next(new AppError("Authentication token is missing", 401));
+    return;
+  }
 
-        if(!token){
-            return res
-            .status(401)
-            .json({message: "No token provided, authorization denied"});
-        }
-        
-        try {
-            const decode = jwt.verify(token, process.env.JWT_SECRET);
-            console.log("🍄🍄🍄🍄",decode);
-            
-            req.user = decode
-            console.log("The Decoded user is : ", req.user);
-            next();
-            
-        } catch (error) {
-            res.status(400).json({message: "Invalid token"});
-        }
-    }else{
-        return res
-        .status(401)
-        .json({message: "No token provided, authorization denied"});
+  const token = authHeader.slice(7).trim();
+
+  if (!token) {
+    next(new AppError("Authentication token is missing", 401));
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET, {
+      issuer: env.JWT_ISSUER,
+    });
+
+    const userId = decoded.sub || decoded.id;
+    const role = decoded.role;
+
+    if (!userId || !role) {
+      next(new AppError("Invalid token payload", 401));
+      return;
     }
+
+    req.auth = { userId, role };
+    next();
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      next(new AppError("Authentication token has expired", 401));
+      return;
+    }
+
+    next(new AppError("Invalid authentication token", 401));
+  }
 };

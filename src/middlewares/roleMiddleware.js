@@ -1,10 +1,15 @@
-export const authorizeRoles = (...allowedRoles) => {
-    return (req, res, next) => {
+import AppError from "../utils/AppError.js";
 
-        if (!allowedRoles.includes(req.user.role)) {
-            return res.status(403).json({ message: "Access denied, insufficient premissions" });
-        }
-        next();
-    }
+export const authorizeRoles = (...allowedRoles) => (req, _res, next) => {
+  if (!req.auth?.role) {
+    next(new AppError("Authentication context missing", 401));
+    return;
+  }
 
-}
+  if (!allowedRoles.includes(req.auth.role)) {
+    next(new AppError("Access denied: insufficient permissions", 403));
+    return;
+  }
+
+  next();
+};

@@ -1,33 +1,46 @@
-import express from 'express';
-import { verifyToken } from '../middlewares/authMiddleware.js';
-import { authorizeRoles } from '../middlewares/roleMiddleware.js';
+import express from "express";
+import { ROLES } from "../constants/roles.js";
+import { verifyToken } from "../middlewares/authMiddleware.js";
+import { authorizeRoles } from "../middlewares/roleMiddleware.js";
+import { updateUserRole } from "../controllers/userController.js";
 
 const router = express.Router();
 
-// Only admin can access this route
-router.get(
-    "/admin",
-    verifyToken,
-    authorizeRoles("admin"),
-    (req, res) => {
-        res.json({ message: "Welcome Admin" });
-    })
-// Both admin and manager can access this route
-router.get(
-    "/manager",
-    verifyToken,
-    authorizeRoles("admin", "manager"),
-    (req, res) => {
-        res.json({ message: "Welcome Manager" });
-    })
+router.use(verifyToken);
 
-// all users can access this route
+router.get("/admin", authorizeRoles(ROLES.ADMIN), (req, res) => {
+  res.status(200).json({
+    message: "Welcome Admin",
+    data: { userId: req.auth.userId, role: req.auth.role },
+  });
+});
+
 router.get(
-    "/user",
-    verifyToken,
-    authorizeRoles("admin", "manager", "user"),
-    (req, res) => {
-        res.json({ message: "Welcome User" });
-    })
+  "/manager",
+  authorizeRoles(ROLES.ADMIN, ROLES.MANAGER),
+  (req, res) => {
+    res.status(200).json({
+      message: "Welcome Manager",
+      data: { userId: req.auth.userId, role: req.auth.role },
+    });
+  }
+);
+
+router.get(
+  "/user",
+  authorizeRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.USER),
+  (req, res) => {
+    res.status(200).json({
+      message: "Welcome User",
+      data: { userId: req.auth.userId, role: req.auth.role },
+    });
+  }
+);
+
+router.patch(
+  "/:userId/role",
+  authorizeRoles(ROLES.ADMIN),
+  updateUserRole
+);
 
 export default router;
